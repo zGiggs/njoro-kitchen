@@ -1,0 +1,508 @@
+cat > templates/kitchen.html << 'EOF'
+{% extends "base.html" %}
+
+{% block title %}Kitchen Display System{% endblock %}
+
+{% block content %}
+<style>
+    .kds-header {
+        background: linear-gradient(135deg, #2c3e50, #1a252f);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .kitchen-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+        margin-top: 20px;
+    }
+    
+    .kitchen-column {
+        background: #f8f9fa;
+        border-radius: 20px;
+        padding: 20px;
+        min-height: 70vh;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    }
+    
+    .column-header {
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: white;
+    }
+    
+    .column-header.pending { background: linear-gradient(135deg, #f39c12, #e67e22); }
+    .column-header.preparing { background: linear-gradient(135deg, #3498db, #2980b9); }
+    .column-header.ready { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+    
+    .column-header i {
+        margin-right: 10px;
+    }
+    
+    .order-card {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        border-left: 5px solid;
+        transition: all 0.3s ease;
+        animation: slideIn 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    }
+    
+    .order-card.pending { border-left-color: #f39c12; }
+    .order-card.preparing { border-left-color: #3498db; }
+    .order-card.ready { border-left-color: #2ecc71; }
+    
+    .order-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #f39c12, #3498db, #2ecc71);
+        opacity: 0.3;
+    }
+    
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px dashed #eee;
+    }
+    
+    .order-number {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .order-badge {
+        padding: 8px 15px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .badge-pending { background: #fff3e0; color: #f39c12; }
+    .badge-preparing { background: #e3f2fd; color: #3498db; }
+    .badge-ready { background: #e8f5e9; color: #2ecc71; }
+    
+    .order-time {
+        font-family: 'Courier New', monospace;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        padding: 10px;
+        border-radius: 10px;
+        margin: 15px 0;
+    }
+    
+    .timer-normal {
+        background: #e8f5e9;
+        color: #2ecc71;
+        border: 2px solid #2ecc71;
+    }
+    
+    .timer-warning {
+        background: #fff3e0;
+        color: #f39c12;
+        border: 2px solid #f39c12;
+        animation: pulse 1s infinite;
+    }
+    
+    .timer-urgent {
+        background: #ffebee;
+        color: #e74c3c;
+        border: 2px solid #e74c3c;
+        animation: pulse 0.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    .order-items {
+        margin: 15px 0;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed #ddd;
+    }
+    
+    .item-row:last-child {
+        border-bottom: none;
+    }
+    
+    .item-quantity {
+        font-weight: 700;
+        color: #3498db;
+        margin-right: 10px;
+    }
+    
+    .special-instructions {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin: 15px 0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .kitchen-btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 15px;
+        color: white;
+    }
+    
+    .btn-start {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+    
+    .btn-start:hover {
+        background: linear-gradient(135deg, #2980b9, #1c6ea4);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(52,152,219,0.3);
+    }
+    
+    .btn-ready {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+    }
+    
+    .btn-ready:hover {
+        background: linear-gradient(135deg, #27ae60, #219a52);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(46,204,113,0.3);
+    }
+    
+    .empty-column {
+        text-align: center;
+        padding: 40px 20px;
+        color: #95a5a6;
+        background: white;
+        border-radius: 15px;
+        border: 2px dashed #ddd;
+    }
+    
+    .empty-column i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: #bdc3c7;
+    }
+    
+    .stats-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-badge {
+        flex: 1;
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 5px 0;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    @media (max-width: 1200px) {
+        .kitchen-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="kds-header">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-tv"></i> Kitchen Display System (KDS)</h2>
+            <p class="mb-0 mt-2 opacity-75">Real-time order management for kitchen staff</p>
+        </div>
+        <div class="stats-row" style="margin: 0; gap: 10px;">
+            <div class="stat-badge" style="background: #f39c12; color: white;">
+                <div class="stat-number" id="pendingCount">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-badge" style="background: #3498db; color: white;">
+                <div class="stat-number" id="preparingCount">0</div>
+                <div class="stat-label">Preparing</div>
+            </div>
+            <div class="stat-badge" style="background: #2ecc71; color: white;">
+                <div class="stat-number" id="readyCount">0</div>
+                <div class="stat-label">Ready</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="kitchen-grid">
+        <!-- Pending Orders Column -->
+        <div class="kitchen-column">
+            <div class="column-header pending">
+                <i class="bi bi-hourglass-split"></i> Pending Orders
+                <span class="badge bg-white text-dark ms-2" id="pendingBadge">0</span>
+            </div>
+            <div id="pendingOrders"></div>
+        </div>
+        
+        <!-- Preparing Column -->
+        <div class="kitchen-column">
+            <div class="column-header preparing">
+                <i class="bi bi-fire"></i> Preparing
+                <span class="badge bg-white text-dark ms-2" id="preparingBadge">0</span>
+            </div>
+            <div id="preparingOrders"></div>
+        </div>
+        
+        <!-- Ready Column -->
+        <div class="kitchen-column">
+            <div class="column-header ready">
+                <i class="bi bi-check-circle"></i> Ready to Serve
+                <span class="badge bg-white text-dark ms-2" id="readyBadge">0</span>
+            </div>
+            <div id="readyOrders"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let orders = [];
+    let timers = {};
+    
+    // Load orders immediately and every 5 seconds
+    loadKitchenOrders();
+    setInterval(loadKitchenOrders, 5000);
+    
+    function loadKitchenOrders() {
+        fetch('/api/kitchen-orders')
+            .then(r => r.json())
+            .then(data => {
+                if (data.orders) {
+                    orders = data.orders;
+                    updateKitchenDisplay();
+                    startTimers();
+                }
+            })
+            .catch(error => console.error('Error loading orders:', error));
+    }
+    
+    function updateKitchenDisplay() {
+        const pending = orders.filter(o => o.status === 'pending');
+        const preparing = orders.filter(o => o.status === 'preparing');
+        const ready = orders.filter(o => o.status === 'ready');
+        
+        // Update counts
+        document.getElementById('pendingCount').textContent = pending.length;
+        document.getElementById('preparingCount').textContent = preparing.length;
+        document.getElementById('readyCount').textContent = ready.length;
+        document.getElementById('pendingBadge').textContent = pending.length;
+        document.getElementById('preparingBadge').textContent = preparing.length;
+        document.getElementById('readyBadge').textContent = ready.length;
+        
+        // Render columns
+        renderOrders('pendingOrders', pending, 'pending');
+        renderOrders('preparingOrders', preparing, 'preparing');
+        renderOrders('readyOrders', ready, 'ready');
+    }
+    
+    function renderOrders(containerId, ordersList, status) {
+        const container = document.getElementById(containerId);
+        
+        if (ordersList.length === 0) {
+            container.innerHTML = `
+                <div class="empty-column">
+                    <i class="bi bi-emoji-smile"></i>
+                    <p class="mt-3">No ${status} orders</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort by oldest first
+        ordersList.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        
+        let html = '';
+        ordersList.forEach(order => {
+            const created = new Date(order.created_at);
+            const now = new Date();
+            const elapsed = Math.floor((now - created) / 60000); // minutes
+            
+            let timerClass = 'timer-normal';
+            if (elapsed > 20) timerClass = 'timer-urgent';
+            else if (elapsed > 10) timerClass = 'timer-warning';
+            
+            let itemsHtml = '';
+            if (order.items) {
+                order.items.forEach(item => {
+                    itemsHtml += `
+                        <div class="item-row">
+                            <span>
+                                <span class="item-quantity">${item.quantity}x</span>
+                                ${item.name}
+                            </span>
+                            <span class="badge bg-info">${item.prep_time || 15}min</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += `
+                <div class="order-card ${status}" id="order-${order.id}">
+                    <div class="order-header">
+                        <span class="order-number">#${order.order_number}</span>
+                        <span class="order-badge badge-${status}">${status}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><i class="bi bi-geo-alt"></i> Table ${order.table_number || 'Takeaway'}</span>
+                        <span><i class="bi bi-clock"></i> ${created.toLocaleTimeString()}</span>
+                    </div>
+                    
+                    <div class="order-time ${timerClass}" id="timer-${order.id}">
+                        ${String(elapsed).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}
+                    </div>
+                    
+                    <div class="order-items">
+                        ${itemsHtml}
+                    </div>
+                    
+                    ${order.special_instructions ? `
+                        <div class="special-instructions">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            ${order.special_instructions}
+                        </div>
+                    ` : ''}
+                    
+                    ${status === 'pending' ? `
+                        <button class="kitchen-btn btn-start" onclick="updateOrder(${order.id}, 'preparing')">
+                            <i class="bi bi-play-fill"></i> START PREPARING
+                        </button>
+                    ` : status === 'preparing' ? `
+                        <button class="kitchen-btn btn-ready" onclick="updateOrder(${order.id}, 'ready')">
+                            <i class="bi bi-check-circle"></i> MARK AS READY
+                        </button>
+                    ` : status === 'ready' ? `
+                        <span class="badge bg-success w-100 p-3 fs-6">✅ READY TO SERVE</span>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function startTimers() {
+        // Clear existing timers
+        Object.values(timers).forEach(timer => clearInterval(timer));
+        timers = {};
+        
+        // Start new timers for pending and preparing orders
+        orders.forEach(order => {
+            if (['pending', 'preparing'].includes(order.status)) {
+                if (timers[order.id]) clearInterval(timers[order.id]);
+                timers[order.id] = setInterval(() => updateTimer(order.id), 1000);
+            }
+        });
+    }
+    
+    function updateTimer(orderId) {
+        const timerElement = document.getElementById(`timer-${orderId}`);
+        if (!timerElement) return;
+        
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+        
+        const created = new Date(order.created_at);
+        const now = new Date();
+        const elapsed = Math.floor((now - created) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        
+        timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        // Update color based on elapsed minutes
+        if (minutes > 20) {
+            timerElement.className = 'order-time timer-urgent';
+        } else if (minutes > 10) {
+            timerElement.className = 'order-time timer-warning';
+        } else {
+            timerElement.className = 'order-time timer-normal';
+        }
+    }
+    
+    function updateOrder(orderId, status) {
+        fetch('/api/update-order-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({order_id: orderId, status: status})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Clear timer for this order
+                if (timers[orderId]) {
+                    clearInterval(timers[orderId]);
+                    delete timers[orderId];
+                }
+                loadKitchenOrders();
+            }
+        });
+    }
+    
+    // Clean up timers on page unload
+    window.addEventListener('beforeunload', function() {
+        Object.values(timers).forEach(timer => clearInterval(timer));
+    });
+</script>
+{% endblock %}
+EOF

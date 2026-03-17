@@ -1,0 +1,251 @@
+cat > templates/admin_menu.html << 'EOF'
+{% extends "base.html" %}
+
+{% block title %}Manage Menu{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-menu-up"></i> Menu Management</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Menu Items</h5>
+            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                <i class="bi bi-plus-circle"></i> Add New Item
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Prep Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuItemsList">
+                        <tr><td colspan="8" class="text-center">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Add Menu Item</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addItemForm">
+                    <div class="mb-3">
+                        <label class="fw-bold">Name</label>
+                        <input type="text" class="form-control" id="itemName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Description</label>
+                        <textarea class="form-control" id="itemDescription" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Price (KSh)</label>
+                        <input type="number" class="form-control" id="itemPrice" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Category</label>
+                        <select class="form-control" id="itemCategory">
+                            <option value="main">Main Dish</option>
+                            <option value="drink">Drink</option>
+                            <option value="special">Special</option>
+                            <option value="side">Side</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Prep Time (minutes)</label>
+                        <input type="number" class="form-control" id="itemPrepTime" value="15">
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Image URL</label>
+                        <input type="url" class="form-control" id="itemImage" placeholder="https://...">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="addMenuItem()">Add Item</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Edit Menu Item</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm">
+                    <input type="hidden" id="editItemId">
+                    <div class="mb-3">
+                        <label class="fw-bold">Name</label>
+                        <input type="text" class="form-control" id="editItemName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Description</label>
+                        <textarea class="form-control" id="editItemDescription" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Price (KSh)</label>
+                        <input type="number" class="form-control" id="editItemPrice" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Category</label>
+                        <select class="form-control" id="editItemCategory">
+                            <option value="main">Main Dish</option>
+                            <option value="drink">Drink</option>
+                            <option value="special">Special</option>
+                            <option value="side">Side</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Prep Time (minutes)</label>
+                        <input type="number" class="form-control" id="editItemPrepTime">
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Image URL</label>
+                        <input type="url" class="form-control" id="editItemImage">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editItemAvailable">
+                        <label class="form-check-label">Available</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateMenuItem()">Update Item</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadMenuItems() {
+        fetch('/api/menu-items')
+            .then(r => r.json())
+            .then(data => {
+                let html = '';
+                data.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.id}</td>
+                            <td><img src="${item.image_url || 'https://via.placeholder.com/50'}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;"></td>
+                            <td>${item.name}</td>
+                            <td><span class="badge bg-info">${item.category}</span></td>
+                            <td>KSh ${item.price}</td>
+                            <td>${item.prep_time} min</td>
+                            <td><span class="badge bg-${item.is_available ? 'success' : 'danger'}">${item.is_available ? 'Available' : 'Unavailable'}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="editItem(${item.id})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem(${item.id})"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('menuItemsList').innerHTML = html || '<tr><td colspan="8" class="text-center">No items found</td></tr>';
+            });
+    }
+    
+    function addMenuItem() {
+        const data = {
+            name: document.getElementById('itemName').value,
+            description: document.getElementById('itemDescription').value,
+            price: parseFloat(document.getElementById('itemPrice').value),
+            category: document.getElementById('itemCategory').value,
+            prep_time: parseInt(document.getElementById('itemPrepTime').value),
+            image_url: document.getElementById('itemImage').value
+        };
+        
+        fetch('/admin/menu/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                bootstrap.Modal.getInstance(document.getElementById('addItemModal')).hide();
+                loadMenuItems();
+            } else {
+                alert('Error: ' + d.error);
+            }
+        });
+    }
+    
+    function editItem(id) {
+        fetch('/api/menu-items/' + id)
+            .then(r => r.json())
+            .then(item => {
+                document.getElementById('editItemId').value = item.id;
+                document.getElementById('editItemName').value = item.name;
+                document.getElementById('editItemDescription').value = item.description || '';
+                document.getElementById('editItemPrice').value = item.price;
+                document.getElementById('editItemCategory').value = item.category;
+                document.getElementById('editItemPrepTime').value = item.prep_time;
+                document.getElementById('editItemImage').value = item.image_url || '';
+                document.getElementById('editItemAvailable').checked = item.is_available;
+                
+                new bootstrap.Modal(document.getElementById('editItemModal')).show();
+            });
+    }
+    
+    function updateMenuItem() {
+        const id = document.getElementById('editItemId').value;
+        const data = {
+            name: document.getElementById('editItemName').value,
+            description: document.getElementById('editItemDescription').value,
+            price: parseFloat(document.getElementById('editItemPrice').value),
+            category: document.getElementById('editItemCategory').value,
+            prep_time: parseInt(document.getElementById('editItemPrepTime').value),
+            image_url: document.getElementById('editItemImage').value,
+            is_available: document.getElementById('editItemAvailable').checked
+        };
+        
+        fetch('/admin/menu/update/' + id, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                bootstrap.Modal.getInstance(document.getElementById('editItemModal')).hide();
+                loadMenuItems();
+            }
+        });
+    }
+    
+    function deleteItem(id) {
+        if (confirm('Delete this item?')) {
+            fetch('/admin/menu/delete/' + id, {method: 'POST'})
+                .then(r => r.json())
+                .then(d => d.success && loadMenuItems());
+        }
+    }
+    
+    loadMenuItems();
+</script>
+{% endblock %}
+EOF

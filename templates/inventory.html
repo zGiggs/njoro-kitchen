@@ -1,0 +1,62 @@
+cat > templates/inventory.html << 'EOF'
+{% extends "base.html" %}
+
+{% block title %}Inventory Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-box"></i> Inventory Management</h2>
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Inventory management coming soon! This page will track stock levels, ingredients, and supplies.
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Current Stock Levels</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Current Stock</th>
+                        <th>Min Level</th>
+                        <th>Status</th>
+                        <th>Last Restocked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Maize Flour</td>
+                        <td>Grains</td>
+                        <td>25 kg</td>
+                        <td>10 kg</td>
+                        <td><span class="badge bg-success">OK</span></td>
+                        <td>2026-03-10</td>
+                    </tr>
+                    <tr>
+                        <td>Sukuma Wiki</td>
+                        <td>Vegetables</td>
+                        <td>5 kg</td>
+                        <td>8 kg</td>
+                        <td><span class="badge bg-danger">LOW</span></td>
+                        <td>2026-03-12</td>
+                    </tr>
+                    <tr>
+                        <td>Goat Meat</td>
+                        <td>Meat</td>
+                        <td>12 kg</td>
+                        <td>10 kg</td>
+                        <td><span class="badge bg-warning">REORDER</span></td>
+                        <td>2026-03-08</td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-primary mt-3">Add Inventory Item</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+EOF

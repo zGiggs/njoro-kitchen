@@ -1,0 +1,47 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+myenv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+*.env
+
+# Logs
+*.log
+instance/
+logs/
+
+# Uploads
+uploads/
+static/uploads/
+
+# M-Pesa credentials (DON'T commit real credentials)
+*credentials*
+*.key
+*.pem

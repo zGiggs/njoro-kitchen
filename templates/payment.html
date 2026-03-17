@@ -1,0 +1,257 @@
+cat > templates/payment.html << 'EOF'
+{% extends "base.html" %}
+
+{% block title %}Payment{% endblock %}
+
+{% block content %}
+<style>
+    .payment-card {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .payment-header {
+        background: linear-gradient(135deg, #28a745, #218838);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .payment-body {
+        padding: 40px;
+    }
+    
+    .order-summary {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .payment-option {
+        border: 2px solid #dee2e6;
+        border-radius: 15px;
+        padding: 25px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        height: 100%;
+    }
+    
+    .payment-option:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .payment-option.selected {
+        border-color: #28a745;
+        background: #f0fff4;
+    }
+    
+    .payment-option i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .payment-option.mpesa i { color: #4caf50; }
+    .payment-option.cash i { color: #ff9800; }
+    .payment-option.card i { color: #2196f3; }
+    
+    .btn-pay {
+        background: linear-gradient(135deg, #28a745, #218838);
+        border: none;
+        padding: 15px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border-radius: 10px;
+        width: 100%;
+        color: white;
+        transition: all 0.3s;
+    }
+    
+    .btn-pay:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(40,167,69,0.3);
+    }
+    
+    .amount-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #28a745;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card payment-card">
+                <div class="payment-header">
+                    <i class="bi bi-credit-card display-4"></i>
+                    <h2 class="mt-3">Complete Payment</h2>
+                    <p class="mb-0">Order #{{ order.order_number }}</p>
+                </div>
+                
+                <div class="payment-body">
+                    <!-- Order Summary -->
+                    <div class="order-summary">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Order Details</h5>
+                                <p class="mb-1"><strong>Table:</strong> {{ order.table_number }}</p>
+                                <p class="mb-1"><strong>Customer:</strong> {{ order.customer_name }}</p>
+                                <p><strong>Items:</strong> {{ order.items|length }}</p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <h5>Total Amount</h5>
+                                <div class="amount-display">KSh {{ "%.2f"|format(order.total_amount) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Options -->
+                    <h5 class="mb-3">Select Payment Method</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="payment-option mpesa selected" onclick="selectMethod('mpesa')" id="mpesa-card">
+                                <i class="bi bi-phone"></i>
+                                <h6>M-Pesa</h6>
+                                <small class="text-muted">Lipa Na M-Pesa</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="payment-option cash" onclick="selectMethod('cash')" id="cash-card">
+                                <i class="bi bi-cash-stack"></i>
+                                <h6>Cash</h6>
+                                <small class="text-muted">Pay at counter</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="payment-option card" onclick="selectMethod('card')" id="card-card">
+                                <i class="bi bi-credit-card"></i>
+                                <h6>Card</h6>
+                                <small class="text-muted">Visa/Mastercard</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- M-Pesa Form -->
+                    <div id="mpesa-form">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle"></i> You will receive an STK push on your phone to complete payment.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">M-Pesa Phone Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text">+254</span>
+                                <input type="text" class="form-control" id="phone" placeholder="712345678" value="708374149">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cash Form (hidden) -->
+                    <div id="cash-form" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Please pay <strong>KSh {{ "%.2f"|format(order.total_amount) }}</strong> at the counter.
+                        </div>
+                    </div>
+                    
+                    <!-- Card Form (hidden) -->
+                    <div id="card-form" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Card payment will be processed at the counter.
+                        </div>
+                    </div>
+                    
+                    <button class="btn-pay mt-4" onclick="processPayment()">
+                        <i class="bi bi-lock"></i> Pay KSh {{ "%.2f"|format(order.total_amount) }}
+                    </button>
+                    
+                    <div class="text-center mt-3">
+                        <a href="/menu" class="text-decoration-none">
+                            <i class="bi bi-arrow-left"></i> Back to Menu
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedMethod = 'mpesa';
+    
+    function selectMethod(method) {
+        selectedMethod = method;
+        
+        // Update selected card
+        document.querySelectorAll('.payment-option').forEach(card => {
+            card.classList.remove('selected');
+        });
+        document.getElementById(method + '-card').classList.add('selected');
+        
+        // Show relevant form
+        document.getElementById('mpesa-form').style.display = method === 'mpesa' ? 'block' : 'none';
+        document.getElementById('cash-form').style.display = method === 'cash' ? 'block' : 'none';
+        document.getElementById('card-form').style.display = method === 'card' ? 'block' : 'none';
+    }
+    
+    function processPayment() {
+        let btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+        
+        if (selectedMethod === 'mpesa') {
+            let phone = document.getElementById('phone').value;
+            if (!phone) {
+                alert('Please enter phone number');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-lock"></i> Pay KSh {{ "%.2f"|format(order.total_amount) }}';
+                return;
+            }
+            
+            fetch('/api/initiate-payment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    order_id: {{ order.id }},
+                    phone: phone
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Payment successful! Thank you for dining with us.');
+                    window.location.href = '/menu';
+                } else {
+                    alert('Payment failed: ' + (data.error || 'Unknown error'));
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-lock"></i> Pay KSh {{ "%.2f"|format(order.total_amount) }}';
+                }
+            });
+        } else {
+            // Cash or card - just mark as paid
+            fetch('/api/initiate-payment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    order_id: {{ order.id }},
+                    phone: 'cash'
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Order completed! Thank you for dining with us.');
+                    window.location.href = '/menu';
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-lock"></i> Pay KSh {{ "%.2f"|format(order.total_amount) }}';
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}
+EOF

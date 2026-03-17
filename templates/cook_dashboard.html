@@ -1,0 +1,163 @@
+cat > templates/cook_dashboard.html << 'EOF'
+{% extends "base.html" %}
+
+{% block title %}Cook Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-fire"></i> Cook Dashboard</h2>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h5>Pending Orders</h5>
+                    <h2 id="pendingCount" style="font-size: 3rem;">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5>Preparing</h5>
+                    <h2 id="preparingCount" style="font-size: 3rem;">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Columns -->
+    <div class="row">
+        <!-- Pending Orders Column -->
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Pending Orders</h5>
+                </div>
+                <div class="card-body" id="pendingOrders" style="max-height: 600px; overflow-y: auto;">
+                    <p class="text-muted text-center py-4">Loading orders...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preparing Orders Column -->
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-fire"></i> Preparing</h5>
+                </div>
+                <div class="card-body" id="preparingOrders" style="max-height: 600px; overflow-y: auto;">
+                    <p class="text-muted text-center py-4">Loading orders...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadKitchenOrders() {
+        fetch('/api/kitchen-orders')
+            .then(response => response.json())
+            .then(data => {
+                if (data.orders) {
+                    updateDisplay(data.orders);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('pendingOrders').innerHTML = '<p class="text-danger text-center py-4">Error loading orders</p>';
+            });
+    }
+    
+    function updateDisplay(orders) {
+        const pending = orders.filter(o => o.status === 'pending');
+        const preparing = orders.filter(o => o.status === 'preparing');
+        
+        document.getElementById('pendingCount').textContent = pending.length;
+        document.getElementById('preparingCount').textContent = preparing.length;
+        
+        renderOrders('pendingOrders', pending, 'pending');
+        renderOrders('preparingOrders', preparing, 'preparing');
+    }
+    
+    function renderOrders(containerId, orderList, status) {
+        const container = document.getElementById(containerId);
+        
+        if (orderList.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center py-4">No orders</p>';
+            return;
+        }
+        
+        let html = '';
+        orderList.forEach(order => {
+            let itemsHtml = '';
+            if (order.items) {
+                order.items.forEach(item => {
+                    itemsHtml += `<div class="small">${item.quantity}x ${item.name}</div>`;
+                });
+            }
+            
+            const orderTime = new Date(order.created_at).toLocaleTimeString();
+            
+            html += `
+                <div class="card mb-3 border-${status === 'pending' ? 'warning' : 'primary'}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">Order #${order.order_number}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-geo-alt"></i> Table ${order.table_number || 'Takeaway'} | 
+                                    <i class="bi bi-clock"></i> ${orderTime}
+                                </small>
+                            </div>
+                            <span class="badge bg-${status === 'pending' ? 'warning' : 'primary'}">${status}</span>
+                        </div>
+                        
+                        <hr class="my-2">
+                        
+                        <div class="mb-2">
+                            ${itemsHtml}
+                        </div>
+                        
+                        ${order.special_instructions ? 
+                            `<div class="alert alert-warning py-2 mb-2 small">
+                                <i class="bi bi-exclamation-triangle"></i> ${order.special_instructions}
+                            </div>` : ''}
+                        
+                        ${status === 'pending' ? 
+                            `<button class="btn btn-sm btn-primary w-100" onclick="updateOrder(${order.id}, 'preparing')">
+                                <i class="bi bi-play-fill"></i> Start Preparing
+                            </button>` : 
+                            `<button class="btn btn-sm btn-success w-100" onclick="updateOrder(${order.id}, 'ready')">
+                                <i class="bi bi-check-circle"></i> Mark as Ready
+                            </button>`
+                        }
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function updateOrder(orderId, newStatus) {
+        fetch('/api/update-order-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({order_id: orderId, status: newStatus})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadKitchenOrders();
+            }
+        });
+    }
+    
+    // Load orders every 3 seconds
+    loadKitchenOrders();
+    setInterval(loadKitchenOrders, 3000);
+</script>
+{% endblock %}
+EOF

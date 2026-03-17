@@ -1,0 +1,121 @@
+# Backup current dashboard
+mv templates/dashboard.html templates/dashboard.html.bak
+
+# Create fixed waiter dashboard
+cat > templates/dashboard.html << 'EOF'
+{% extends "base.html" %}
+
+{% block title %}Waiter Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-person-workspace"></i> Waiter Dashboard</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5>Pending</h5>
+                    <h2 id="pendingCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Preparing</h5>
+                    <h2 id="preparingCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Ready</h5>
+                    <h2 id="readyCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Today's Revenue</h5>
+                    <h2 id="todayRevenue">KSh 0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5>Active Orders</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Table</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersList">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadOrders() {
+        fetch('/api/orders').then(r => r.json()).then(data => {
+            if (data.orders) displayOrders(data.orders);
+        });
+    }
+    
+    function displayOrders(orders) {
+        document.getElementById('pendingCount').textContent = orders.filter(o => o.status === 'pending').length;
+        document.getElementById('preparingCount').textContent = orders.filter(o => o.status === 'preparing').length;
+        document.getElementById('readyCount').textContent = orders.filter(o => o.status === 'ready').length;
+        
+        const today = new Date().toDateString();
+        const revenue = orders.filter(o => o.payment_status === 'paid' && new Date(o.created_at).toDateString() === today)
+            .reduce((s, o) => s + o.total_amount, 0);
+        document.getElementById('todayRevenue').textContent = `KSh ${revenue}`;
+        
+        let html = '';
+        orders.forEach(o => {
+            let items = o.items ? o.items.map(i => `${i.quantity}x ${i.name}`).join(', ') : '';
+            html += `<tr>
+                <td>${o.order_number}</td>
+                <td>Table ${o.table_number}</td>
+                <td>${items.substring(0, 30)}${items.length > 30 ? '...' : ''}</td>
+                <td>KSh ${o.total_amount}</td>
+                <td><span class="badge bg-${o.status === 'pending' ? 'warning' : o.status === 'preparing' ? 'primary' : 'success'}">${o.status}</span></td>
+                <td>
+                    ${o.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="updateOrder(${o.id},'preparing')">Start</button>` : ''}
+                    ${o.status === 'preparing' ? `<button class="btn btn-sm btn-warning" onclick="updateOrder(${o.id},'ready')">Ready</button>` : ''}
+                    ${o.status === 'ready' ? `<button class="btn btn-sm btn-success" onclick="updateOrder(${o.id},'completed')">Serve</button>` : ''}
+                </td>
+            </tr>`;
+        });
+        document.getElementById('ordersList').innerHTML = html || '<tr><td colspan="6">No orders</td></tr>';
+    }
+    
+    function updateOrder(id, status) {
+        fetch('/api/update-order-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({order_id: id, status: status})
+        }).then(() => loadOrders());
+    }
+    
+    loadOrders();
+    setInterval(loadOrders, 3000);
+</script>
+{% endblock %}
+EOF
