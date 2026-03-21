@@ -11,7 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'njoro-kitchen-secret-key-2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://njoro:your_password@localhost/njoro_kitchen'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///njoro_kitchen.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
