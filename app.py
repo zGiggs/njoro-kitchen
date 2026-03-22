@@ -681,6 +681,130 @@ def admin_settings():
     if 'role' not in session or session['role'] != 'admin':
         return redirect(url_for('index'))
     return render_template('settings.html')
+
+# ============================================
+# SECRET ROUTE TO POPULATE DATABASE
+# ============================================
+
+@app.route('/secret-populate-db')
+def secret_populate_db():
+    """Visit this URL to populate the database with all menu items"""
+    
+    # Check if we already have enough items
+    current_count = MenuItem.query.count()
+    
+    if current_count > 20:
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Database Already Populated</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h2>ℹ️ Database Status</h2>
+                    </div>
+                    <div class="card-body">
+                        <p>Database already has <strong>{current_count}</strong> menu items.</p>
+                        <p>No changes needed.</p>
+                        <a href='/menu' class='btn btn-primary'>Go to Menu →</a>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+    
+    # List of all 29 items
+    all_items = [
+        ('Ugali & Sukuma Wiki', 'Traditional maize meal with sautéed collard greens', 250, 'main', 15),
+        ('Nyama Choma', 'Grilled goat meat served with kachumbari', 450, 'main', 25),
+        ('Chapati', 'Freshly made soft layered flatbread', 50, 'side', 10),
+        ('Rice & Beans', 'Steamed rice with Kenyan beans stew', 200, 'main', 12),
+        ('Chicken Stew', 'Tender chicken in rich tomato sauce', 350, 'main', 20),
+        ('Fresh Juice', 'Seasonal fresh fruit juice', 150, 'drink', 5),
+        ('Mandazi', 'Sweet fried dough pastry (4 pieces)', 80, 'side', 8),
+        ('Beef Pilau', 'Spiced rice with beef', 300, 'special', 18),
+        ('Beef Stew', 'Slow-cooked beef in rich gravy', 380, 'main', 25),
+        ('Fish Fry', 'Whole fried tilapia with ugali', 550, 'main', 25),
+        ('Matoke', 'Mashed green bananas with onions', 280, 'main', 20),
+        ('Mukimo', 'Mashed potatoes with greens and maize', 220, 'main', 18),
+        ('Githeri', 'Traditional maize and beans mix', 180, 'main', 15),
+        ('Mango Lassi', 'Sweet yogurt mango drink', 180, 'drink', 5),
+        ('Masala Chai', 'Traditional spiced tea', 80, 'drink', 3),
+        ('Kenyan Coffee', 'Rich AA coffee', 150, 'drink', 5),
+        ('Fresh Orange Juice', 'Squeezed fresh oranges', 150, 'drink', 5),
+        ('Dawa Cocktail', 'Honey, lemon and ginger drink', 250, 'drink', 5),
+        ('Virgin Mojito', 'Mint and lime refresher', 220, 'drink', 5),
+        ('Stoney Tangawizi', 'Ginger flavored soda', 120, 'drink', 2),
+        ('Chicken Biryani', 'Spiced rice with chicken', 450, 'special', 25),
+        ('Omena', 'Silver cyprinid with ugali', 320, 'special', 20),
+        ('Goat Stew', 'Slow-cooked goat meat', 480, 'special', 30),
+        ('Kachumbari', 'Fresh tomato-onion salsa', 80, 'side', 5),
+        ('Samosas', 'Crispy meat pastries (3pcs)', 150, 'side', 10),
+        ('Chips Masala', 'Spiced french fries', 180, 'side', 12),
+        ('Viazi Karai', 'Fried potato bites', 150, 'side', 12),
+        ('Coleslaw', 'Fresh cabbage salad', 80, 'side', 5),
+    ]
+    
+    # Clear existing and add all
+    MenuItem.query.delete()
+    
+    added = 0
+    for name, desc, price, cat, prep in all_items:
+        item = MenuItem(
+            name=name,
+            description=desc,
+            price=price,
+            category=cat,
+            prep_time=prep,
+            is_available=True
+        )
+        db.session.add(item)
+        added += 1
+    
+    db.session.commit()
+    
+    from sqlalchemy import func
+    categories = db.session.query(MenuItem.category, func.count()).group_by(MenuItem.category).all()
+    
+    result = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Database Populated</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h2>✅ Database Populated!</h2>
+                </div>
+                <div class="card-body">
+                    <p>Added <strong>{added}</strong> menu items to the database.</p>
+                    <h4>📊 Menu Breakdown:</h4>
+                    <ul>
+    """
+    for cat, count in categories:
+        result += f"<li><strong>{cat}</strong>: {count} items</li>"
+    
+    result += f"""
+                    </ul>
+                    <hr>
+                    <a href='/menu' class='btn btn-primary'>Go to Menu →</a>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return result
+
 # ============================================
 # MAIN
 # ============================================
