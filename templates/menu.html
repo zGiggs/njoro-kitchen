@@ -43,11 +43,10 @@ cat > templates/menu.html << 'EOF'
         margin-right: 8px;
     }
     
-    /* Menu Cards */
+    /* Menu Cards - NO IMAGES */
     .menu-card {
         border: none;
         border-radius: 15px;
-        overflow: hidden;
         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         transition: all 0.3s;
         height: 100%;
@@ -55,28 +54,19 @@ cat > templates/menu.html << 'EOF'
     }
     
     .menu-card:hover {
-        transform: translateY(-10px);
+        transform: translateY(-5px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.15);
     }
     
-    .menu-image {
-        height: 200px;
-        width: 100%;
-        object-fit: cover;
-        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    }
-    
     .menu-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(0,0,0,0.7);
+        display: inline-block;
+        background: linear-gradient(135deg, #007bff, #0056b3);
         color: white;
         padding: 5px 15px;
         border-radius: 50px;
         font-size: 0.8rem;
         font-weight: 600;
-        z-index: 2;
+        margin-bottom: 10px;
     }
     
     .price-tag {
@@ -365,20 +355,15 @@ cat > templates/menu.html << 'EOF'
         </button>
     </div>
 
-    <!-- Menu Grid -->
+    <!-- Menu Grid - NO IMAGES, TEXT ONLY -->
     <div class="row" id="menuGrid">
         {% for item in items %}
         <div class="col-lg-3 col-md-4 col-sm-6 mb-4 menu-item" data-category="{{ item.category }}">
             <div class="card menu-card">
-                <div class="position-relative">
-                    <img src="{{ item.image_url or 'https://via.placeholder.com/300x200?text=' + item.name|urlencode }}"
-                         class="menu-image" alt="{{ item.name }}"
-                         onerror="this.src='https://via.placeholder.com/300x200?text=' + encodeURIComponent('{{ item.name }}') + '&bg=28a745&fg=ffffff';">
-                    <span class="menu-badge">{{ item.category|upper }}</span>
-                </div>
                 <div class="card-body">
+                    <span class="menu-badge">{{ item.category|upper }}</span>
                     <h5 class="card-title">{{ item.name }}</h5>
-                    <p class="text-muted small">{{ item.description|truncate(50) }}</p>
+                    <p class="card-text text-muted small">{{ item.description|truncate(60) }}</p>
                     
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="price-tag">KSh {{ "%.0f"|format(item.price) }}</span>
@@ -554,7 +539,6 @@ cat > templates/menu.html << 'EOF'
     }
 
     function showNotification(message, type = 'info') {
-        // Create notification element
         let notification = document.createElement('div');
         notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
         notification.style.zIndex = '9999';
@@ -566,7 +550,6 @@ cat > templates/menu.html << 'EOF'
         }, 3000);
     }
 
-    // Close cart on ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeCart();

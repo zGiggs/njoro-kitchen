@@ -57,7 +57,6 @@ cat > templates/payment.html << 'EOF'
     
     .payment-option.mpesa i { color: #4caf50; }
     .payment-option.cash i { color: #ff9800; }
-    .payment-option.card i { color: #2196f3; }
     
     .btn-pay {
         background: linear-gradient(135deg, #28a745, #218838);
@@ -110,28 +109,21 @@ cat > templates/payment.html << 'EOF'
                         </div>
                     </div>
                     
-                    <!-- Payment Options -->
+                    <!-- Payment Options - ONLY M-PESA AND CASH (NO CARD) -->
                     <h5 class="mb-3">Select Payment Method</h5>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="payment-option mpesa selected" onclick="selectMethod('mpesa')" id="mpesa-card">
                                 <i class="bi bi-phone"></i>
                                 <h6>M-Pesa</h6>
                                 <small class="text-muted">Lipa Na M-Pesa</small>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="payment-option cash" onclick="selectMethod('cash')" id="cash-card">
                                 <i class="bi bi-cash-stack"></i>
                                 <h6>Cash</h6>
                                 <small class="text-muted">Pay at counter</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="payment-option card" onclick="selectMethod('card')" id="card-card">
-                                <i class="bi bi-credit-card"></i>
-                                <h6>Card</h6>
-                                <small class="text-muted">Visa/Mastercard</small>
                             </div>
                         </div>
                     </div>
@@ -154,13 +146,6 @@ cat > templates/payment.html << 'EOF'
                     <div id="cash-form" style="display: none;">
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i> Please pay <strong>KSh {{ "%.2f"|format(order.total_amount) }}</strong> at the counter.
-                        </div>
-                    </div>
-                    
-                    <!-- Card Form (hidden) -->
-                    <div id="card-form" style="display: none;">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> Card payment will be processed at the counter.
                         </div>
                     </div>
                     
@@ -194,7 +179,6 @@ cat > templates/payment.html << 'EOF'
         // Show relevant form
         document.getElementById('mpesa-form').style.display = method === 'mpesa' ? 'block' : 'none';
         document.getElementById('cash-form').style.display = method === 'cash' ? 'block' : 'none';
-        document.getElementById('card-form').style.display = method === 'card' ? 'block' : 'none';
     }
     
     function processPayment() {
@@ -231,7 +215,7 @@ cat > templates/payment.html << 'EOF'
                 }
             });
         } else {
-            // Cash or card - just mark as paid
+            // Cash - just mark as paid
             fetch('/api/initiate-payment', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
